@@ -1,32 +1,20 @@
-/**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
+import { Transformer } from '@napi-rs/image';
 
-export interface Env {
-	// Example binding to KV. Learn more at https://developers.cloudflare.com/workers/runtime-apis/kv/
-	// MY_KV_NAMESPACE: KVNamespace;
-	//
-	// Example binding to Durable Object. Learn more at https://developers.cloudflare.com/workers/runtime-apis/durable-objects/
-	// MY_DURABLE_OBJECT: DurableObjectNamespace;
-	//
-	// Example binding to R2. Learn more at https://developers.cloudflare.com/workers/runtime-apis/r2/
-	// MY_BUCKET: R2Bucket;
-	//
-	// Example binding to a Service. Learn more at https://developers.cloudflare.com/workers/runtime-apis/service-bindings/
-	// MY_SERVICE: Fetcher;
-	//
-	// Example binding to a Queue. Learn more at https://developers.cloudflare.com/queues/javascript-apis/
-	// MY_QUEUE: Queue;
-}
+interface Env {}
 
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-		return new Response('Hello World!');
+		const svgResponse = await fetch('https://dev.w3.org/SVG/tools/svgweb/samples/svg-files/duck.svg');
+		const svgBuffer = await svgResponse.arrayBuffer();
+
+		const transformer = new Transformer(svgBuffer);
+		const png = await transformer.png();
+
+		const responseHeaders = new Headers();
+		responseHeaders.set('Cache-Control', `public, max-age=${1 * 60 * 60}`);
+		responseHeaders.set('vary', 'Accept');
+		responseHeaders.set('Content-Type', 'image/png');
+
+		return new Response(png, { headers: responseHeaders });
 	},
 };
